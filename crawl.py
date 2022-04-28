@@ -2,13 +2,10 @@
 #
 # (c) 2022, Deich Geist
 #
-import pandas as pd
-import re
 import requests
-import time
 import json
-from requests.auth import HTTPBasicAuth
-from bs4 import BeautifulSoup
+import time
+from   bs4 import BeautifulSoup
 
 baseurl = 'https://die-maus-bremen.info/fileadmin/db_query'
 
@@ -31,14 +28,19 @@ RegisterList = [
 #    }
 ]
 
+# Prepare a local counter for the number of webpages read: 
+request_count = 0
+t_start = time.time()
+
 
 # 1. Iterate through the 3 different types of registers:
 for register in RegisterList :
     url        = baseurl + '/' + register['query'] + '/'
     print( "Start Crawling:", register['type'], url)
-    session    = requests.Session()
-    session.auth = ('Maus', 'Maus')
-    req        = session.get( url )
+    session       = requests.Session()
+    session.auth  = ('Maus', 'Maus')
+    req           = session.get( url )
+    request_count = request_count + 1
     if req.status_code == 200 :
         soup       = BeautifulSoup(req.content, 'html.parser')
         # Read the List of Verweise for alphabetic names as page list:
@@ -49,9 +51,10 @@ for register in RegisterList :
                 'url'   : url + verweis['href'],
                 'names' : list()
             }
-            # Read the Family Names from this Page A-Z:
+            # Read the Family Names from this Pages A-Z:
             print("    Crawling Page:", page)
             resp = session.get( page['url'])
+            request_count = request_count + 1
             if resp.status_code == 200 :
                 nhtml    = BeautifulSoup( resp.content, 'html.parser')
                 nametags = nhtml.select('td[width="33%"] > a')
@@ -66,6 +69,7 @@ for register in RegisterList :
                     # For the demo it is enough to only scroll all person details with Letter 'A'
                     if page['id'] == 'A' :
                         preq = session.get( fnurl )
+                        request_count = request_count + 1
                         if preq.status_code == 200 :
                             phtml = BeautifulSoup( preq.content, 'html.parser')
                             ptrs  = phtml.find_all('tr', class_=True)
@@ -93,10 +97,16 @@ for register in RegisterList :
     else :
         print("Error reading page:", req)
     # Now we have read this register. 
-    # Let's create an excel-sheet from the person data we gathered:
-    break
+
+# Set end time and calculate duration:
+t_end   = time.time()
+t_delta = t_end - t_start
 
 # Convert Data structure to local json file:
 with open("register.json", "w", encoding='utf8') as data_file:
     json.dump(RegisterList, data_file, indent=4, ensure_ascii=False)
 
+# Print statistics:
+print( "Webpages read:........", request_count)
+print( "Duration:.............", t_delta, '[sec]')
+print( "Pages per second:.....", request_count / t_delta)
