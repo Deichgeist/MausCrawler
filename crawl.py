@@ -33,6 +33,35 @@ request_count = 0
 t_start = time.time()
 
 
+# Function to parse the person details from a geburten name page:
+def parse_famname_details_geburten( session, url ) :
+    global request_count
+    personen = list()
+    preq = session.get( url )
+    request_count = request_count + 1
+    if preq.status_code == 200 :
+        phtml = BeautifulSoup( preq.content, 'html.parser')
+        ptrs  = phtml.find_all('tr', class_=True)
+        for ptr in ptrs :
+            ptds  = ptr.find_all('td')
+            if len(ptds) >= 4 :
+                pname  = ptds[0].text.strip()
+                pregnr = ptds[1].text
+                pyear  = ptds[2].text
+                psta   = ptds[3].text
+                xurl   = ptds[0].select_one('a')['href']
+                person = {
+                    'name'  : pname,
+                    'regnr' : pregnr,
+                    'year'  : pyear,
+                    'sta'   : psta,
+                    'url'   : xurl,
+                }
+                # Add person to family names:
+                personen.append( person )    
+    return personen
+
+
 # 1. Iterate through the 3 different types of registers:
 for register in RegisterList :
     url        = baseurl + '/' + register['query'] + '/'
@@ -68,28 +97,7 @@ for register in RegisterList :
                     # Now read the persons data for "family name" from the Name-Page:
                     # For the demo it is enough to only scroll all person details with Letter 'A'
                     if page['id'] == 'A' :
-                        preq = session.get( fnurl )
-                        request_count = request_count + 1
-                        if preq.status_code == 200 :
-                            phtml = BeautifulSoup( preq.content, 'html.parser')
-                            ptrs  = phtml.find_all('tr', class_=True)
-                            for ptr in ptrs :
-                                ptds  = ptr.find_all('td')
-                                if len(ptds) >= 4 :
-                                    pname  = ptds[0].text.strip()
-                                    pregnr = ptds[1].text
-                                    pyear  = ptds[2].text
-                                    psta   = ptds[3].text
-                                    xurl   = ptds[0].select_one('a')['href']
-                                    person = {
-                                        'name'  : pname,
-                                        'regnr' : pregnr,
-                                        'year'  : pyear,
-                                        'sta'   : psta,
-                                        'url'   : xurl,
-                                    }
-                                    # Add person to family names:
-                                    famname['persons'].append( person )
+                        famname['persons'] = parse_famname_details_geburten( session, fnurl )
                     # Add family name to page
                     page['names'].append(famname)
             # Add Page Data to Register:
