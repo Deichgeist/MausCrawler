@@ -10,17 +10,17 @@ from   bs4 import BeautifulSoup
 baseurl = 'https://die-maus-bremen.info/fileadmin/db_query'
 
 RegisterList = [
-    { 
-        'type'  : 'Geburten',
-        'query' : 'staamtreg_bremen-geb',
-        'pages' : list()
-    },
-
-#    {
-#        'type'  : 'Sterberegister',
-#        'query' : 'staamtreg_bremen-sterbef',
+#    { 
+#        'type'  : 'Geburten',
+#        'query' : 'staamtreg_bremen-geb',
 #        'pages' : list()
 #    },
+
+    {
+        'type'  : 'Sterberegister',
+        'query' : 'staamtreg_bremen-sterbef',
+        'pages' : list()
+    },
 #    {
 #        'type'  : 'Trauunugen',
 #        'query' : 'staamtreg_bremen-tr',
@@ -62,6 +62,38 @@ def parse_famname_details_geburten( session, url ) :
     return personen
 
 
+# Function to parse the person details from a sterbefaelle name page:
+def parse_famname_details_sterbefaelle( session, url ) :
+    global request_count
+    personen = list()
+    preq = session.get( url )
+    request_count = request_count + 1
+    if preq.status_code == 200 :
+        phtml = BeautifulSoup( preq.content, 'html.parser')
+        ptrs  = phtml.find_all('tr', class_=True)
+        for ptr in ptrs :
+            ptds  = ptr.find_all('td')
+            if len(ptds) >= 4 :
+                pname    = ptds[0].text.strip()
+                pgebname = ptds[1].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
+                pregnr   = ptds[2].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
+                psta     = ptds[3].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
+                prem     = ptds[4].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
+                xurl     = ptds[0].select_one('a')['href']
+                person = {
+                    'name'     : pname,
+                    'gebname'  : pgebname,
+                    'regyear'  : pregnr,
+                    'sta'      : psta,
+                    'remark'   : prem,
+                    'url'      : xurl,
+                }
+                # Add person to family names:
+                personen.append( person )    
+    return personen
+
+
+##########################################################################
 # 1. Iterate through the 3 different types of registers:
 for register in RegisterList :
     url        = baseurl + '/' + register['query'] + '/'
@@ -97,7 +129,10 @@ for register in RegisterList :
                     # Now read the persons data for "family name" from the Name-Page:
                     # For the demo it is enough to only scroll all person details with Letter 'A'
                     if page['id'] == 'A' :
-                        famname['persons'] = parse_famname_details_geburten( session, fnurl )
+                        if register['type'] == 'Geburten' :
+                            famname['persons'] = parse_famname_details_geburten( session, fnurl )
+                        if register['type'] == 'Sterberegister' :
+                            famname['persons'] = parse_famname_details_sterbefaelle( session, fnurl )
                     # Add family name to page
                     page['names'].append(famname)
             # Add Page Data to Register:
