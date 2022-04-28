@@ -16,16 +16,16 @@ RegisterList = [
 #        'pages' : list()
 #    },
 
-    {
-        'type'  : 'Sterberegister',
-        'query' : 'staamtreg_bremen-sterbef',
-        'pages' : list()
-    },
 #    {
-#        'type'  : 'Trauunugen',
-#        'query' : 'staamtreg_bremen-tr',
+#        'type'  : 'Sterberegister',
+#        'query' : 'staamtreg_bremen-sterbef',
 #        'pages' : list()
-#    }
+#    },
+    {
+        'type'  : 'Trauunugen',
+        'query' : 'staamtreg_bremen-tr',
+        'pages' : list()
+    }
 ]
 
 # Prepare a local counter for the number of webpages read: 
@@ -73,7 +73,7 @@ def parse_famname_details_sterbefaelle( session, url ) :
         ptrs  = phtml.find_all('tr', class_=True)
         for ptr in ptrs :
             ptds  = ptr.find_all('td')
-            if len(ptds) >= 4 :
+            if len(ptds) >= 5 :
                 pname    = ptds[0].text.strip()
                 pgebname = ptds[1].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
                 pregnr   = ptds[2].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
@@ -86,6 +86,35 @@ def parse_famname_details_sterbefaelle( session, url ) :
                     'regyear'  : pregnr,
                     'sta'      : psta,
                     'remark'   : prem,
+                    'url'      : xurl,
+                }
+                # Add person to family names:
+                personen.append( person )    
+    return personen
+
+
+# Function to parse the person details from a marriage name page:
+def parse_famname_details_trauungen( session, url ) :
+    global request_count
+    personen = list()
+    preq = session.get( url )
+    request_count = request_count + 1
+    if preq.status_code == 200 :
+        phtml = BeautifulSoup( preq.content, 'html.parser')
+        ptrs  = phtml.find_all('tr', class_=True)
+        for ptr in ptrs :
+            ptds  = ptr.find_all('td')
+            if len(ptds) >= 4 :
+                pname    = ptds[0].text.strip()
+                pgebname = ptds[1].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
+                pyear    = ptds[2].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
+                psta     = ptds[3].text.strip().replace('\n', ' ').replace('\r', '').replace('  ',' ')
+                xurl     = ptds[0].select_one('a')['href']
+                person = {
+                    'name'     : pname,
+                    'gebname'  : pgebname,
+                    'year'     : pyear,
+                    'sta'      : psta,
                     'url'      : xurl,
                 }
                 # Add person to family names:
@@ -133,6 +162,8 @@ for register in RegisterList :
                             famname['persons'] = parse_famname_details_geburten( session, fnurl )
                         if register['type'] == 'Sterberegister' :
                             famname['persons'] = parse_famname_details_sterbefaelle( session, fnurl )
+                        if register['type'] == 'Trauunugen' :
+                            famname['persons'] = parse_famname_details_trauungen( session, fnurl )                            
                     # Add family name to page
                     page['names'].append(famname)
             # Add Page Data to Register:
@@ -140,6 +171,10 @@ for register in RegisterList :
     else :
         print("Error reading page:", req)
     # Now we have read this register. 
+    # Convert Data structure to local json file:
+    filename = register['type'] + '.json'
+    with open( filename, "w", encoding='utf8') as data_file:
+        json.dump(register, data_file, indent=2, ensure_ascii=False)
 
 # Set end time and calculate duration:
 t_end   = time.time()
@@ -147,7 +182,7 @@ t_delta = t_end - t_start
 
 # Convert Data structure to local json file:
 with open("register.json", "w", encoding='utf8') as data_file:
-    json.dump(RegisterList, data_file, indent=4, ensure_ascii=False)
+    json.dump(RegisterList, data_file, indent=2, ensure_ascii=False)
 
 # Print statistics:
 print( "Webpages read:........", request_count)
