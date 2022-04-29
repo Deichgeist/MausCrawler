@@ -10,17 +10,16 @@ from   bs4 import BeautifulSoup
 baseurl = 'https://die-maus-bremen.info/fileadmin/db_query'
 
 RegisterList = [
-#    { 
-#        'type'  : 'Geburten',
-#        'query' : 'staamtreg_bremen-geb',
-#        'pages' : list()
-#    },
-
-#    {
-#        'type'  : 'Sterberegister',
-#        'query' : 'staamtreg_bremen-sterbef',
-#        'pages' : list()
-#    },
+    { 
+        'type'  : 'Geburten',
+        'query' : 'staamtreg_bremen-geb',
+        'pages' : list()
+    },
+    {
+        'type'  : 'Sterberegister',
+        'query' : 'staamtreg_bremen-sterbef',
+        'pages' : list()
+    },
     {
         'type'  : 'Trauunugen',
         'query' : 'staamtreg_bremen-tr',
