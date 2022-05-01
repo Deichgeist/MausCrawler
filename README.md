@@ -40,3 +40,7 @@ Now you are ready to go. Just start the beast:
 ```bash
 python3 crawl.py
 ```
+Once the crawler has successfully finished, you can convert the JSON data into some excel sheet by:
+```bash
+python3 convert_to_excel.py
+```
