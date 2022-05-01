@@ -21,7 +21,7 @@ RegisterList = [
         'pages' : list()
     },
     {
-        'type'  : 'Trauunugen',
+        'type'  : 'Trauungen',
         'query' : 'staamtreg_bremen-tr',
         'pages' : list()
     }
@@ -161,7 +161,7 @@ for register in RegisterList :
                             famname['persons'] = parse_famname_details_geburten( session, fnurl )
                         if register['type'] == 'Sterberegister' :
                             famname['persons'] = parse_famname_details_sterbefaelle( session, fnurl )
-                        if register['type'] == 'Trauunugen' :
+                        if register['type'] == 'Trauungen' :
                             famname['persons'] = parse_famname_details_trauungen( session, fnurl )                            
                     # Add family name to page
                     page['names'].append(famname)
